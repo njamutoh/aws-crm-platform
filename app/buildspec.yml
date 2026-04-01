@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────────────────────
+# buildspec.yml — runs inside AWS CodeBuild
+#
+# Set these in the CodeBuild project environment:
+#   AWS_ACCOUNT_ID
+#   AWS_REGION
+#   ECR_REPO_NAME
+# ─────────────────────────────────────────────────────────────
+version: 0.2
+
+phases:
+
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "=== INSTALL ==="
+      - npm install
+
+  pre_build:
+    commands:
+      - echo "=== PRE-BUILD: Tests ==="
+      - npm test
+      - echo "=== PRE-BUILD: ECR login ==="
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+      - ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URI
+
+  build:
+    commands:
+      - echo "=== BUILD ==="
+      - docker build -t $ECR_REPO_NAME:$IMAGE_TAG .
+      - docker tag $ECR_REPO_NAME:$IMAGE_TAG $ECR_URI:$IMAGE_TAG
+      - docker tag $ECR_REPO_NAME:$IMAGE_TAG $ECR_URI:latest
+
+  post_build:
+    commands:
+      - echo "=== POST-BUILD: Push ==="
+      - docker push $ECR_URI:$IMAGE_TAG
+      - docker push $ECR_URI:latest
+      - printf '[{"name":"aws-crm-platform","imageUri":"%s"}]' $ECR_URI:$IMAGE_TAG > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
+    - appspec.yml
+    - deploy.sh
+  discard-paths: no

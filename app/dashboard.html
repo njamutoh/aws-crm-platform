@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Nexus CRM — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<style>
+/* ── Reset & base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+:root {
+  --indigo:    #6366f1;
+  --indigo-d:  #4f46e5;
+  --violet:    #8b5cf6;
+  --emerald:   #10b981;
+  --amber:     #f59e0b;
+  --red:       #ef4444;
+  --cyan:      #06b6d4;
+
+  --sidebar:   #0f172a;
+  --bg:        #f1f5f9;
+  --card:      #ffffff;
+  --border:    #e2e8f0;
+  --text:      #0f172a;
+  --muted:     #94a3b8;
+  --secondary: #475569;
+
+  --radius:    12px;
+  --radius-sm: 8px;
+  --shadow:    0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 24px rgba(0,0,0,.10);
+}
+
+a { color: var(--indigo); text-decoration: none; }
+input, select, textarea, button { font-family: inherit; font-size: 14px; }
+
+/* ══════════════════════════════════════════════════════
+   LOGIN PAGE
+══════════════════════════════════════════════════════ */
+.auth-body { display: flex; min-height: 100vh; background: var(--bg); }
+
+/* Left hero */
+.hero {
+  flex: 0 0 56%; background: linear-gradient(135deg,#0f172a 0%,#1e1b4b 55%,#0c1a3d 100%);
+  padding: 60px 56px; display: flex; flex-direction: column;
+  justify-content: center; position: relative; overflow: hidden;
+}
+.hero > * { position: relative; z-index: 2; }
+.orb { position:absolute; border-radius:50%; filter:blur(80px); opacity:.15; pointer-events:none; }
+.orb-1 { width:380px;height:380px;background:var(--indigo); top:-80px;right:-60px; }
+.orb-2 { width:280px;height:280px;background:var(--cyan);  bottom:-40px;left:20px; }
+.orb-3 { width:180px;height:180px;background:var(--violet);top:45%;right:18%; }
+
+.logo { display:flex;align-items:center;gap:10px;margin-bottom:52px; }
+.logo-icon {
+  width:40px;height:40px;border-radius:10px;
+  background:linear-gradient(135deg,var(--indigo),var(--violet));
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;
+}
+.logo-text { font-size:22px;font-weight:400;color:#e2e8f0; }
+.logo-text strong { font-weight:700;color:#fff; }
+
+.hero h1 { font-size:44px;font-weight:700;line-height:1.15;color:#fff;letter-spacing:-.8px;margin-bottom:18px; }
+.hero p  { font-size:16px;color:#94a3b8;line-height:1.7;max-width:420px;margin-bottom:52px; }
+
+.metric-cards { display:flex;flex-direction:column;gap:12px;margin-bottom:40px; }
+.mc {
+  display:flex;align-items:center;gap:16px;padding:16px 20px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+  border-radius:var(--radius);backdrop-filter:blur(8px);
+  animation: floatIn .5s ease both;
+}
+.mc:nth-child(2){animation-delay:.1s} .mc:nth-child(3){animation-delay:.2s}
+@keyframes floatIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.mc-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0; }
+.mc-val  { font-size:20px;font-weight:700;color:#fff;line-height:1.2; }
+.mc-lbl  { font-size:12px;color:#94a3b8; }
+.mc-up   { margin-left:auto;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;background:rgba(16,185,129,.15);color:#34d399;white-space:nowrap; }
+
+.pipeline-bar { }
+.pb-lbl { font-size:11px;color:#64748b;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px; }
+.pb-track { display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px; }
+.pb-seg { border-radius:2px; }
+.pb-legend { display:flex;flex-wrap:wrap;gap:14px;margin-top:10px; }
+.pb-legend span { display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b; }
+.pb-legend i { display:inline-block;width:8px;height:8px;border-radius:2px;font-style:normal; }
+
+/* Right auth panel */
+.auth-panel {
+  flex:1;display:flex;flex-direction:column;justify-content:space-between;
+  background:var(--card);padding:40px 48px;overflow-y:auto;
+}
+.auth-inner { margin:auto 0;max-width:390px;width:100%; }
+
+.tabs { display:flex;border-bottom:2px solid var(--border);margin-bottom:32px; }
+.tab  { padding:10px 20px 12px;background:none;border:none;font-size:15px;font-weight:500;color:var(--muted);cursor:pointer;position:relative;transition:color .2s; }
+.tab.active { color:var(--indigo); }
+.tab.active::after { content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:var(--indigo);border-radius:2px; }
+
+.form-title { font-size:26px;font-weight:700;color:var(--text);margin-bottom:6px; }
+.form-sub   { color:var(--muted);margin-bottom:28px; }
+
+.fg { margin-bottom:18px; }
+.fg label { display:block;font-size:13px;font-weight:500;color:var(--secondary);margin-bottom:6px; }
+.fg .lrow { display:flex;justify-content:space-between;align-items:center;margin-bottom:6px; }
+.fg .lrow label { margin:0; }
+.fg .forgot { font-size:13px;color:var(--indigo); }
+
+.iw { position:relative;display:flex;align-items:center; }
+.iw i.pre { position:absolute;left:13px;color:var(--muted);font-size:13px;pointer-events:none; }
+.iw input  { width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s; }
+.iw input:focus { border-color:var(--indigo);box-shadow:0 0 0 3px rgba(99,102,241,.12);background:#fff; }
+.iw input::placeholder { color:var(--muted); }
+.eye-btn { position:absolute;right:11px;background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;line-height:1; }
+
+.err-box { background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px; }
+.ok-box  { background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d; border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px; }
+
+.btn-primary {
+  width:100%;padding:12px;border:none;border-radius:var(--radius-sm);
+  background:linear-gradient(135deg,var(--indigo),var(--indigo-d));
+  color:#fff;font-size:15px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .2s,transform .1s;
+}
+.btn-primary:hover { opacity:.9;transform:translateY(-1px); }
+.btn-primary.sm { width:auto;padding:9px 18px;font-size:13px; }
+.btn-secondary { padding:10px 20px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:none;color:var(--secondary);font-weight:500;cursor:pointer;transition:background .2s; }
+.btn-secondary:hover { background:var(--bg); }
+
+.divider { text-align:center;margin:20px 0;position:relative;color:var(--muted);font-size:12px; }
+.divider::before,.divider::after { content:'';position:absolute;top:50%;height:1px;background:var(--border);width:calc(50% - 64px); }
+.divider::before{left:0} .divider::after{right:0}
+
+.demo-box { background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--secondary);text-align:center; }
+.demo-box i { color:var(--indigo);margin-right:4px; }
+
+.auth-footer { display:flex;gap:20px;font-size:12px;color:var(--muted);padding-top:20px;border-top:1px solid var(--border); }
+
+/* ══════════════════════════════════════════════════════
+   DASHBOARD LAYOUT
+══════════════════════════════════════════════════════ */
+.db-body    { display:flex;height:100vh;background:var(--bg);overflow:hidden; }
+
+.sidebar {
+  width:236px;background:var(--sidebar);display:flex;flex-direction:column;
+  flex-shrink:0;overflow-y:auto;transition:transform .25s;z-index:100;
+}
+.sb-head { display:flex;align-items:center;gap:10px;padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.06); }
+.sb-close { display:none;margin-left:auto;background:none;border:none;color:#fff;cursor:pointer;font-size:16px; }
+.sb-nav { padding:16px 12px;flex:1; }
+.sb-section { font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#1e293b;padding:0 8px;margin-bottom:6px;margin-top:20px; }
+.sb-section:first-child { margin-top:0; }
+.sb-link {
+  display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;
+  color:#94a3b8;font-size:13.5px;font-weight:500;text-decoration:none;
+  transition:all .15s;margin-bottom:2px;cursor:pointer;
+}
+.sb-link:hover  { background:rgba(255,255,255,.05);color:#e2e8f0; }
+.sb-link.active { background:rgba(99,102,241,.15);color:#fff; }
+.sb-link i { width:16px;text-align:center;font-size:14px; }
+.sb-badge { margin-left:auto;background:var(--indigo);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px; }
+.sb-foot { padding:16px 20px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px; }
+.av-sm { width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--violet));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0; }
+.av-name { font-size:13px;font-weight:600;color:#e2e8f0; }
+.av-role { font-size:11px;color:#64748b;text-transform:capitalize; }
+
+.main { flex:1;display:flex;flex-direction:column;overflow:hidden; }
+
+.topbar {
+  height:64px;background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:16px;padding:0 24px;flex-shrink:0;
+}
+.hamburger { display:none;background:none;border:none;font-size:18px;color:var(--text);cursor:pointer; }
+.search-wrap { flex:1;max-width:340px;position:relative;display:flex;align-items:center; }
+.search-wrap i { position:absolute;left:12px;color:var(--muted);font-size:13px; }
+.search-wrap input { width:100%;padding:8px 12px 8px 36px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);outline:none;font-size:13px;transition:border-color .2s; }
+.search-wrap input:focus { border-color:var(--indigo);background:#fff; }
+.tb-actions { display:flex;align-items:center;gap:6px;margin-left:auto; }
+.icon-btn { width:36px;height:36px;border-radius:8px;border:none;background:none;color:var(--secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s; }
+.icon-btn:hover { background:var(--bg); }
+.tb-user { display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:8px;cursor:pointer;margin-left:4px;transition:background .15s; }
+.tb-user:hover { background:var(--bg); }
+.avatar { width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--violet));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0; }
+.tb-name { font-size:13px;font-weight:600;color:var(--text); }
+.tb-role { font-size:11px;color:var(--muted); }
+
+.content { flex:1;overflow-y:auto;padding:28px 32px; }
+.section { animation:fadeUp .3s ease; }
+.section.hidden { display:none; }
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.sec-head { display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px; }
+.page-title { font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.4px; }
+.page-sub   { font-size:14px;color:var(--muted);margin-top:4px; }
+
+/* KPI cards */
+.kpi-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px; }
+.kpi-card { background:var(--card);border-radius:var(--radius);padding:20px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow);border:1px solid var(--border);transition:transform .2s,box-shadow .2s; }
+.kpi-card:hover { transform:translateY(-2px);box-shadow:var(--shadow-md); }
+.kpi-icon { width:48px;height:48px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff; }
+.kpi-lbl  { font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px; }
+.kpi-val  { font-size:26px;font-weight:700;color:var(--text);line-height:1.2;margin:2px 0; }
+.kpi-chg  { font-size:12px;color:var(--muted); }
+
+/* Middle grid */
+.mid-grid { display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:24px; }
+
+/* Cards */
+.card { background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow); }
+.card-head { display:flex;align-items:center;justify-content:space-between;padding:20px 20px 0; }
+.card-title { font-size:15px;font-weight:600;color:var(--text); }
+.card-badge { font-size:11px;font-weight:600;background:var(--bg);border:1px solid var(--border);color:var(--muted);padding:3px 10px;border-radius:20px; }
+.card-btn   { background:none;border:none;color:var(--indigo);font-size:13px;cursor:pointer; }
+.chart-wrap { padding:16px 20px 8px;height:220px; }
+
+/* Activity */
+.act-list { padding:8px 0;max-height:280px;overflow-y:auto; }
+.act-item { display:flex;gap:12px;padding:12px 20px;border-bottom:1px solid #f8fafc;transition:background .15s; }
+.act-item:last-child { border-bottom:none; }
+.act-item:hover { background:var(--bg); }
+.act-dot { width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px; }
+.act-desc { font-size:13px;color:var(--text);font-weight:500; }
+.act-meta { font-size:11px;color:var(--muted);margin-top:2px; }
+
+/* Kanban */
+.kanban { display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:start; }
+.k-col  { background:var(--bg);border-radius:var(--radius);overflow:hidden; }
+.k-col-head { padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border); }
+.k-col-title { font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px; }
+.k-dot { width:8px;height:8px;border-radius:50%; }
+.k-count { font-size:12px;color:var(--muted); }
+.k-total { font-size:11px;color:var(--muted);font-weight:600;padding:4px 16px 10px; }
+.k-cards { padding:10px;display:flex;flex-direction:column;gap:8px; }
+.deal-card { background:var(--card);border-radius:8px;padding:14px;border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:transform .15s,box-shadow .15s; }
+.deal-card:hover { transform:translateY(-2px);box-shadow:var(--shadow-md); }
+.deal-title   { font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.3; }
+.deal-company { font-size:12px;color:var(--muted);margin-bottom:10px; }
+.deal-foot { display:flex;align-items:center;justify-content:space-between; }
+.deal-val  { font-size:13px;font-weight:700;color:var(--text); }
+.deal-prob { font-size:11px;color:var(--muted);background:var(--bg);padding:2px 8px;border-radius:10px; }
+.k-empty   { text-align:center;padding:20px;color:var(--muted);font-size:12px; }
+
+/* Contacts table */
+.table-bar { display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border); }
+.table-bar .iw { max-width:240px; }
+.table-bar .iw input { padding:8px 10px 8px 36px;font-size:13px; }
+.table-bar .iw i.pre { font-size:12px; }
+.sel-sm { padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;outline:none;cursor:pointer;margin-left:auto; }
+.tbl-wrap { overflow-x:auto; }
+table { width:100%;border-collapse:collapse; }
+thead th { text-align:left;padding:12px 16px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap; }
+tbody td { padding:14px 16px;font-size:13px;color:var(--text);border-bottom:1px solid #f8fafc;vertical-align:middle; }
+tbody tr:hover td { background:rgba(99,102,241,.02); }
+tbody tr:last-child td { border-bottom:none; }
+.load-cell { text-align:center;color:var(--muted);padding:40px !important; }
+
+/* Badges */
+.badge { display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;text-transform:capitalize; }
+.badge-lead        { background:rgba(99,102,241,.1); color:var(--indigo); }
+.badge-prospect    { background:rgba(6,182,212,.1);  color:#0891b2; }
+.badge-customer    { background:rgba(16,185,129,.1); color:#059669; }
+.badge-churned     { background:rgba(239,68,68,.1);  color:var(--red); }
+.badge-qualified   { background:rgba(139,92,246,.1); color:var(--violet); }
+.badge-proposal    { background:rgba(6,182,212,.1);  color:#0891b2; }
+.badge-negotiation { background:rgba(245,158,11,.1); color:#d97706; }
+.badge-closed_won  { background:rgba(16,185,129,.1); color:#059669; }
+.badge-closed_lost { background:rgba(239,68,68,.1);  color:var(--red); }
+
+.act-btns { display:flex;gap:4px; }
+.act-btn { width:28px;height:28px;border-radius:6px;border:none;background:none;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s; }
+.act-btn:hover { background:var(--bg);color:var(--text); }
+.act-btn.del:hover { background:#fef2f2;color:var(--red); }
+
+/* Modals */
+.modal-overlay { position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s; }
+.modal-overlay.hidden { display:none; }
+@keyframes fadeIn{from{opacity:0}}
+.modal { background:var(--card);border-radius:var(--radius);width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:slideUp .2s ease;max-height:90vh;overflow-y:auto; }
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}}
+.modal-head { display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border); }
+.modal-head h3 { font-size:16px;font-weight:700; }
+.modal-close { width:30px;height:30px;border-radius:6px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s; }
+.modal-close:hover { background:var(--bg); }
+.modal-body { padding:24px; }
+.modal-foot { display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid var(--border); }
+.modal .btn-primary { width:auto; }
+.form-row { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+.sel-full { width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s; }
+.sel-full:focus { border-color:var(--indigo); }
+textarea { width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);resize:vertical;outline:none;transition:border-color .2s; }
+textarea:focus { border-color:var(--indigo); }
+.input-plain { width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);outline:none; }
+.input-plain:focus { border-color:var(--indigo); }
+
+/* Responsive */
+@media(max-width:1100px){ .kpi-grid{grid-template-columns:repeat(2,1fr)} .kanban{grid-template-columns:repeat(3,1fr)} }
+@media(max-width:900px) { .hero{display:none} .mid-grid{grid-template-columns:1fr} }
+@media(max-width:768px) {
+  .sidebar{position:fixed;top:0;left:0;bottom:0;transform:translateX(-100%)}
+  .sidebar.open{transform:none} .sb-close{display:flex} .hamburger{display:flex}
+  .content{padding:20px 16px} .kpi-grid{grid-template-columns:1fr 1fr}
+  .kanban{grid-template-columns:repeat(2,1fr)}
+}
+
+</style>
+</head>
+<body class="db-body">
+
+  <!-- ── Sidebar ──────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <div class="logo-icon" style="width:32px;height:32px;border-radius:8px;font-size:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff">
+        <i class="fa-solid fa-bolt"></i>
+      </div>
+      <span class="logo-text">nexus<strong>crm</strong></span>
+      <button class="sb-close" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">Main</div>
+      <a class="sb-link active" data-sec="overview"  onclick="nav('overview',this)">
+        <i class="fa-solid fa-grid-2"></i><span>Overview</span>
+      </a>
+      <a class="sb-link" data-sec="pipeline" onclick="nav('pipeline',this)">
+        <i class="fa-solid fa-kanban"></i><span>Pipeline</span>
+        <span class="sb-badge" id="pipe-count">0</span>
+      </a>
+      <a class="sb-link" data-sec="contacts" onclick="nav('contacts',this)">
+        <i class="fa-solid fa-users"></i><span>Contacts</span>
+      </a>
+      <div class="sb-section">Account</div>
+      <a class="sb-link" onclick="logout()">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i><span>Sign out</span>
+      </a>
+    </nav>
+    <div class="sb-foot">
+      <div class="av-sm" id="sb-av">?</div>
+      <div><div class="av-name" id="sb-name">—</div><div class="av-role" id="sb-role">—</div></div>
+    </div>
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────────────────── -->
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search contacts…" oninput="searchContacts(this.value)"/>
+      </div>
+      <div class="tb-actions">
+        <button class="icon-btn"><i class="fa-regular fa-bell"></i></button>
+        <div class="tb-user">
+          <div class="avatar" id="tb-av">?</div>
+          <div><div class="tb-name" id="tb-name">—</div><div class="tb-role" id="tb-role">—</div></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ── OVERVIEW ───────────────────────────────────────────── -->
+      <section id="sec-overview" class="section">
+        <div class="sec-head">
+          <div>
+            <h1 class="page-title">Good morning, <span id="greet-name">there</span> 👋</h1>
+            <p class="page-sub">Here's what's happening with your pipeline today.</p>
+          </div>
+          <button class="btn-primary sm" onclick="openDealModal()"><i class="fa-solid fa-plus"></i> New deal</button>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)"><i class="fa-solid fa-users"></i></div>
+            <div><div class="kpi-lbl">Total contacts</div><div class="kpi-val" id="k-contacts">—</div><div class="kpi-chg">in your CRM</div></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#0ea5e9,#06b6d4)"><i class="fa-solid fa-handshake"></i></div>
+            <div><div class="kpi-lbl">Open deals</div><div class="kpi-val" id="k-deals">—</div><div class="kpi-chg">across pipeline</div></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#10b981,#059669)"><i class="fa-solid fa-dollar-sign"></i></div>
+            <div><div class="kpi-lbl">Closed revenue</div><div class="kpi-val" id="k-revenue">—</div><div class="kpi-chg">won deals total</div></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444)"><i class="fa-solid fa-chart-bar"></i></div>
+            <div><div class="kpi-lbl">Pipeline value</div><div class="kpi-val" id="k-pipeline">—</div><div class="kpi-chg">active deals</div></div>
+          </div>
+        </div>
+
+        <div class="mid-grid">
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Revenue trend</span>
+              <span class="card-badge">Last 6 months</span>
+            </div>
+            <div class="chart-wrap"><canvas id="rev-chart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Recent activity</span>
+              <button class="card-btn" onclick="loadActivity()">Refresh</button>
+            </div>
+            <div class="act-list" id="act-list"><div style="padding:20px;text-align:center;color:var(--muted)"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── PIPELINE ───────────────────────────────────────────── -->
+      <section id="sec-pipeline" class="section hidden">
+        <div class="sec-head">
+          <div><h1 class="page-title">Sales Pipeline</h1><p class="page-sub">Your deals by stage.</p></div>
+          <button class="btn-primary sm" onclick="openDealModal()"><i class="fa-solid fa-plus"></i> New deal</button>
+        </div>
+        <div class="kanban" id="kanban"><div style="padding:40px;color:var(--muted)"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading…</div></div>
+      </section>
+
+      <!-- ── CONTACTS ───────────────────────────────────────────── -->
+      <section id="sec-contacts" class="section hidden">
+        <div class="sec-head">
+          <div><h1 class="page-title">Contacts</h1><p class="page-sub">Manage your leads, prospects and customers.</p></div>
+          <button class="btn-primary sm" onclick="openContactModal()"><i class="fa-solid fa-plus"></i> Add contact</button>
+        </div>
+        <div class="card">
+          <div class="table-bar">
+            <div class="iw"><i class="pre fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="ct-search" placeholder="Search contacts…" oninput="filterContacts()"/>
+            </div>
+            <select class="sel-sm" id="ct-status" onchange="filterContacts()">
+              <option value="">All statuses</option>
+              <option value="lead">Lead</option>
+              <option value="prospect">Prospect</option>
+              <option value="customer">Customer</option>
+              <option value="churned">Churned</option>
+            </select>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Name</th><th>Email</th><th>Company</th><th>Status</th><th>Deals</th><th>Value</th><th></th>
+              </tr></thead>
+              <tbody id="ct-body"><tr><td colspan="7" class="load-cell"><i class="fa-solid fa-circle-notch fa-spin"></i></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+
+  <!-- ── Contact modal ─────────────────────────────────────────── -->
+  <div class="modal-overlay hidden" id="m-contact">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="m-contact-title">Add contact</h3>
+        <button class="modal-close" onclick="closeModal('m-contact')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="saveContact(event)">
+        <div class="modal-body">
+          <input type="hidden" id="ct-id"/>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="fg" style="margin:0">
+              <label>Full name *</label>
+              <div class="iw"><i class="pre fa-regular fa-user"></i><input type="text" id="ct-name" required/></div>
+            </div>
+            <div class="fg" style="margin:0">
+              <label>Email *</label>
+              <div class="iw"><i class="pre fa-regular fa-envelope"></i><input type="email" id="ct-email" required/></div>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="fg" style="margin:0">
+              <label>Company</label>
+              <div class="iw"><i class="pre fa-regular fa-building"></i><input type="text" id="ct-company"/></div>
+            </div>
+            <div class="fg" style="margin:0">
+              <label>Phone</label>
+              <div class="iw"><i class="pre fa-solid fa-phone"></i><input type="text" id="ct-phone"/></div>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:14px">
+            <label>Status</label>
+            <select id="ct-st" class="sel-full">
+              <option value="lead">Lead</option><option value="prospect">Prospect</option>
+              <option value="customer">Customer</option><option value="churned">Churned</option>
+            </select>
+          </div>
+          <div class="fg" style="margin:0">
+            <label>Notes</label>
+            <textarea id="ct-notes" rows="3" placeholder="Any context about this contact…"></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn-secondary" onclick="closeModal('m-contact')">Cancel</button>
+          <button type="submit" class="btn-primary">Save contact</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Deal modal ────────────────────────────────────────────── -->
+  <div class="modal-overlay hidden" id="m-deal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>New deal</h3>
+        <button class="modal-close" onclick="closeModal('m-deal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="saveDeal(event)">
+        <div class="modal-body">
+          <div class="fg" style="margin-bottom:14px">
+            <label>Deal title *</label>
+            <div class="iw"><i class="pre fa-solid fa-tag"></i><input type="text" id="dl-title" required placeholder="e.g. Acme Corp Enterprise License"/></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="fg" style="margin:0">
+              <label>Contact *</label>
+              <select id="dl-contact" class="sel-full" required></select>
+            </div>
+            <div class="fg" style="margin:0">
+              <label>Deal value ($)</label>
+              <div class="iw"><i class="pre fa-solid fa-dollar-sign"></i><input type="number" id="dl-value" min="0" step="100" placeholder="0"/></div>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="fg" style="margin:0">
+              <label>Stage</label>
+              <select id="dl-stage" class="sel-full">
+                <option value="lead">Lead</option><option value="qualified">Qualified</option>
+                <option value="proposal">Proposal</option><option value="negotiation">Negotiation</option>
+                <option value="closed_won">Closed won</option>
+              </select>
+            </div>
+            <div class="fg" style="margin:0">
+              <label>Close date</label>
+              <input type="date" id="dl-date" class="input-plain"/>
+            </div>
+          </div>
+          <div class="fg" style="margin:0">
+            <label>Notes</label>
+            <textarea id="dl-notes" rows="2" placeholder="Any notes…"></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn-secondary" onclick="closeModal('m-deal')">Cancel</button>
+          <button type="submit" class="btn-primary">Create deal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── Auth guard ─────────────────────────────────────────────────
+const TOKEN = localStorage.getItem('nx_token');
+const USER  = JSON.parse(localStorage.getItem('nx_user') || '{}');
+if (!TOKEN) location.href = '/';
+
+// ── Bootstrap ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const ini = (USER.name||'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  ['tb-av','sb-av'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=ini; });
+  ['tb-name','sb-name'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=USER.name||''; });
+  ['tb-role','sb-role'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=(USER.role||'sales rep').replace('_',' '); });
+  const greet = document.getElementById('greet-name');
+  if (greet) greet.textContent = (USER.name||'there').split(' ')[0];
+
+  loadStats();
+  loadActivity();
+  loadChartData();
+  loadContacts();
+  loadPipeline();
+});
+
+// ── API helper ─────────────────────────────────────────────────
+async function api(path, opts={}) {
+  const r = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${TOKEN}`, ...(opts.headers||{}) }
+  });
+  if (r.status===401||r.status===403) { logout(); return null; }
+  return r;
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+function nav(sec, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('hidden', s.id !== `sec-${sec}`));
+  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
+  el.classList.add('active');
+  if (sec==='pipeline') loadPipeline();
+  if (sec==='contacts') loadContacts();
+}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+function logout() { localStorage.clear(); location.href='/'; }
+
+// ── Stats ──────────────────────────────────────────────────────
+async function loadStats() {
+  const r = await api('/api/dashboard/stats');
+  if (!r) return;
+  const d = await r.json();
+  document.getElementById('k-contacts').textContent = d.contacts;
+  document.getElementById('k-deals').textContent    = d.deals;
+  document.getElementById('k-revenue').textContent  = fmt(d.revenue);
+  document.getElementById('k-pipeline').textContent = fmt(d.pipeline);
+}
+
+// ── Revenue chart (builds from deals data) ─────────────────────
+let chart = null;
+async function loadChartData() {
+  const r = await api('/api/dashboard/pipeline');
+  if (!r) return;
+  const data  = await r.json();
+  const won   = data.closed_won || [];
+  // Simple bar from seed data value distribution
+  const labels  = ['Oct','Nov','Dec','Jan','Feb','Mar'];
+  const revenue = [18000,85000,120000,0,0,0].map((v,i) => won[i]?.value || v);
+
+  const ctx = document.getElementById('rev-chart');
+  if (!ctx) return;
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label:'Revenue', data:revenue, backgroundColor:'rgba(99,102,241,.2)', borderColor:'#6366f1', borderWidth:2, borderRadius:6, borderSkipped:false },
+        { type:'line', label:'Trend', data:revenue, borderColor:'#10b981', borderWidth:2, pointRadius:4, pointBackgroundColor:'#10b981', tension:.4, fill:false }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>`$${(c.parsed.y||0).toLocaleString()}` } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:'#94a3b8',font:{size:11}} },
+        y:{ grid:{color:'#f1f5f9'}, ticks:{color:'#94a3b8',font:{size:11}, callback:v=>`$${(v/1000).toFixed(0)}k`} }
+      }
+    }
+  });
+}
+
+// ── Activity ───────────────────────────────────────────────────
+const ACT_CFG = {
+  deal_created:     {icon:'fa-plus',       bg:'rgba(99,102,241,.12)', c:'#6366f1'},
+  stage_changed:    {icon:'fa-arrow-right',bg:'rgba(16,185,129,.12)', c:'#10b981'},
+  email_sent:       {icon:'fa-envelope',   bg:'rgba(6,182,212,.12)',  c:'#06b6d4'},
+  call_logged:      {icon:'fa-phone',      bg:'rgba(139,92,246,.12)', c:'#8b5cf6'},
+  meeting_scheduled:{icon:'fa-calendar',   bg:'rgba(16,185,129,.12)', c:'#10b981'},
+};
+async function loadActivity() {
+  const list = document.getElementById('act-list');
+  const r    = await api('/api/dashboard/activity');
+  if (!r) return;
+  const data = await r.json();
+  if (!data.length) { list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted)">No activity yet.</div>'; return; }
+  list.innerHTML = data.map(a => {
+    const cfg = ACT_CFG[a.type] || ACT_CFG.deal_created;
+    return `<div class="act-item">
+      <div class="act-dot" style="background:${cfg.bg};color:${cfg.c}"><i class="fa-solid ${cfg.icon}"></i></div>
+      <div><div class="act-desc">${a.description||'—'}</div>
+           <div class="act-meta">${a.contact_name||''} · ${timeAgo(a.created_at)}</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Pipeline / Kanban ──────────────────────────────────────────
+const STAGES = {
+  lead:        {label:'Lead',        color:'#6366f1'},
+  qualified:   {label:'Qualified',   color:'#8b5cf6'},
+  proposal:    {label:'Proposal',    color:'#06b6d4'},
+  negotiation: {label:'Negotiation', color:'#f59e0b'},
+  closed_won:  {label:'Won',         color:'#10b981'},
+};
+async function loadPipeline() {
+  const board = document.getElementById('kanban');
+  const r     = await api('/api/dashboard/pipeline');
+  if (!r) return;
+  const data  = await r.json();
+  const total = Object.values(data).reduce((s,a)=>s+a.length, 0);
+  document.getElementById('pipe-count').textContent = total;
+
+  board.innerHTML = Object.entries(STAGES).map(([stage,cfg]) => {
+    const deals     = data[stage] || [];
+    const stageVal  = deals.reduce((s,d)=>s+parseFloat(d.value||0),0);
+    return `<div class="k-col">
+      <div class="k-col-head">
+        <span class="k-col-title"><span class="k-dot" style="background:${cfg.color}"></span>${cfg.label}</span>
+        <span class="k-count">${deals.length}</span>
+      </div>
+      ${stageVal>0?`<div class="k-total">${fmt(stageVal)}</div>`:''}
+      <div class="k-cards">
+        ${deals.length ? deals.map(d=>`
+          <div class="deal-card">
+            <div class="deal-title">${d.title}</div>
+            <div class="deal-company">${d.company||d.contact_name||'—'}</div>
+            <div class="deal-foot">
+              <span class="deal-val">${fmt(d.value)}</span>
+              <span class="deal-prob">${d.probability}%</span>
+            </div>
+          </div>`).join('') : '<div class="k-empty">No deals</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Contacts ───────────────────────────────────────────────────
+let searchTimer;
+async function loadContacts(search='', status='') {
+  const body = document.getElementById('ct-body');
+  const r    = await api(`/api/contacts?search=${encodeURIComponent(search)}&status=${status}`);
+  if (!r) return;
+  const data = await r.json();
+  if (!data.length) {
+    body.innerHTML = '<tr><td colspan="7" class="load-cell">No contacts found.</td></tr>';
+    return;
+  }
+  body.innerHTML = data.map(c => `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="av-sm" style="width:30px;height:30px;font-size:11px">${c.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>
+        <strong>${c.name}</strong></div></td>
+      <td style="color:var(--secondary)">${c.email}</td>
+      <td>${c.company||'—'}</td>
+      <td><span class="badge badge-${c.status}">${c.status}</span></td>
+      <td style="text-align:center">${c.deal_count}</td>
+      <td><strong>${fmt(c.total_value)}</strong></td>
+      <td><div class="act-btns">
+        <button class="act-btn" onclick='editContact(${JSON.stringify(c)})'><i class="fa-solid fa-pencil"></i></button>
+        <button class="act-btn del" onclick="delContact(${c.id})"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`).join('');
+}
+
+function filterContacts() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    loadContacts(document.getElementById('ct-search').value, document.getElementById('ct-status').value);
+  }, 300);
+}
+
+function searchContacts(val) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    nav('contacts', document.querySelector('[data-sec="contacts"]'));
+    document.getElementById('ct-search').value = val;
+    loadContacts(val);
+  }, 350);
+}
+
+// ── Contact CRUD ───────────────────────────────────────────────
+function openContactModal() {
+  document.getElementById('m-contact-title').textContent = 'Add contact';
+  ['ct-id','ct-name','ct-email','ct-company','ct-phone','ct-notes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('ct-st').value = 'lead';
+  openModal('m-contact');
+}
+function editContact(c) {
+  document.getElementById('m-contact-title').textContent = 'Edit contact';
+  document.getElementById('ct-id').value      = c.id;
+  document.getElementById('ct-name').value    = c.name;
+  document.getElementById('ct-email').value   = c.email;
+  document.getElementById('ct-company').value = c.company||'';
+  document.getElementById('ct-phone').value   = c.phone||'';
+  document.getElementById('ct-st').value      = c.status;
+  document.getElementById('ct-notes').value   = c.notes||'';
+  openModal('m-contact');
+}
+async function saveContact(e) {
+  e.preventDefault();
+  const id   = document.getElementById('ct-id').value;
+  const body = {
+    name:    document.getElementById('ct-name').value,
+    email:   document.getElementById('ct-email').value,
+    company: document.getElementById('ct-company').value,
+    phone:   document.getElementById('ct-phone').value,
+    status:  document.getElementById('ct-st').value,
+    notes:   document.getElementById('ct-notes').value,
+  };
+  await api(id ? `/api/contacts/${id}` : '/api/contacts', { method: id?'PUT':'POST', body: JSON.stringify(body) });
+  closeModal('m-contact');
+  loadContacts(); loadStats();
+}
+async function delContact(id) {
+  if (!confirm('Delete this contact?')) return;
+  await api(`/api/contacts/${id}`, { method:'DELETE' });
+  loadContacts(); loadStats();
+}
+
+// ── Deal CRUD ──────────────────────────────────────────────────
+async function openDealModal() {
+  const r    = await api('/api/contacts');
+  const data = r ? await r.json() : [];
+  document.getElementById('dl-contact').innerHTML =
+    data.map(c=>`<option value="${c.id}">${c.name}${c.company?` — ${c.company}`:''}</option>`).join('');
+  ['dl-title','dl-value','dl-notes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('dl-stage').value = 'lead';
+  openModal('m-deal');
+}
+async function saveDeal(e) {
+  e.preventDefault();
+  await api('/api/deals', {
+    method:'POST',
+    body: JSON.stringify({
+      contact_id: document.getElementById('dl-contact').value,
+      title:      document.getElementById('dl-title').value,
+      value:      document.getElementById('dl-value').value||0,
+      stage:      document.getElementById('dl-stage').value,
+      close_date: document.getElementById('dl-date').value,
+      notes:      document.getElementById('dl-notes').value,
+    })
+  });
+  closeModal('m-deal'); loadPipeline(); loadStats(); loadActivity();
+}
+
+// ── Modal helpers ──────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+document.querySelectorAll('.modal-overlay').forEach(o =>
+  o.addEventListener('click', e => { if(e.target===o) o.classList.add('hidden'); })
+);
+
+// ── Helpers ────────────────────────────────────────────────────
+function fmt(v) {
+  const n = parseFloat(v)||0;
+  if (n>=1000000) return `$${(n/1e6).toFixed(1)}M`;
+  if (n>=1000)    return `$${(n/1000).toFixed(1)}k`;
+  return `$${n.toLocaleString()}`;
+}
+function timeAgo(d) {
+  const s = Math.floor((Date.now()-new Date(d))/1000);
+  if (s<60)    return 'just now';
+  if (s<3600)  return `${Math.floor(s/60)}m ago`;
+  if (s<86400) return `${Math.floor(s/3600)}h ago`;
+  return `${Math.floor(s/86400)}d ago`;
+}
+</script>
+</body>
+</html>
