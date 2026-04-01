@@ -6,11 +6,18 @@ version: 0.0
 os: linux
 
 files:
-  - source: deploy.sh
-    destination: /home/ec2-user/deploy/
+  - source: scripts/
+    destination: /home/ec2-user/deploy/scripts/
 
 permissions:
-  - object: /home/ec2-user/deploy/deploy.sh
+  - object: /home/ec2-user/deploy/scripts
+    owner: ec2-user
+    group: ec2-user
+    mode: "755"
+    type:
+      - directory
+  - object: /home/ec2-user/deploy/scripts
+    pattern: "**"
     owner: ec2-user
     group: ec2-user
     mode: "755"
@@ -19,25 +26,21 @@ permissions:
 
 hooks:
   BeforeInstall:
-    - location: deploy.sh
-      command:  "/home/ec2-user/deploy/deploy.sh stop"
-      timeout:  60
-      runas:    ec2-user
+    - location: scripts/deploy.sh
+      timeout: 60
+      runas: ec2-user
 
   AfterInstall:
-    - location: deploy.sh
-      command:  "/home/ec2-user/deploy/deploy.sh pull"
-      timeout:  120
-      runas:    ec2-user
+    - location: scripts/deploy.sh
+      timeout: 120
+      runas: ec2-user
 
   ApplicationStart:
-    - location: deploy.sh
-      command:  "/home/ec2-user/deploy/deploy.sh start"
-      timeout:  60
-      runas:    ec2-user
+    - location: scripts/deploy.sh
+      timeout: 60
+      runas: ec2-user
 
   ValidateService:
-    - location: deploy.sh
-      command:  "/home/ec2-user/deploy/deploy.sh validate"
-      timeout:  30
-      runas:    ec2-user
+    - location: scripts/deploy.sh
+      timeout: 30
+      runas: ec2-user
