@@ -15,12 +15,12 @@ phases:
       nodejs: 20
     commands:
       - 'echo "=== INSTALL ==="'
-      - 'cd "$CODEBUILD_SRC_DIR/app" && npm install'
+      - '(cd "$CODEBUILD_SRC_DIR/app" && npm install)'
 
   pre_build:
     commands:
       - 'echo "=== PRE-BUILD: Tests ==="'
-      - 'cd "$CODEBUILD_SRC_DIR/app" && npm run test --if-present || true'
+      - '(cd "$CODEBUILD_SRC_DIR/app" && npm run test --if-present || true)'
       - 'echo "=== PRE-BUILD: ECR login ==="'
       - 'IMAGE_TAG=$(echo "$CODEBUILD_RESOLVED_SOURCE_VERSION" | cut -c1-7)'
       - 'ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME"'
@@ -36,6 +36,7 @@ phases:
   post_build:
     commands:
       - 'echo "=== POST-BUILD: Push ==="'
+      - 'cd "$CODEBUILD_SRC_DIR"'
       - 'docker push "$ECR_URI:$IMAGE_TAG"'
       - 'docker push "$ECR_URI:latest"'
       - 'printf ''[{"name":"aws-crm-platform","imageUri":"%s"}]'' "$ECR_URI:$IMAGE_TAG" > imagedefinitions.json'
