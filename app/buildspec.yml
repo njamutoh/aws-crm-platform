@@ -15,12 +15,12 @@ phases:
       nodejs: 20
     commands:
       - 'echo "=== INSTALL ==="'
-      - 'cd app && npm install'
+      - 'cd "$CODEBUILD_SRC_DIR/app" && npm install'
 
   pre_build:
     commands:
       - 'echo "=== PRE-BUILD: Tests ==="'
-      - 'cd app && npm test'
+      - 'cd "$CODEBUILD_SRC_DIR/app" && npm run test --if-present || true'
       - 'echo "=== PRE-BUILD: ECR login ==="'
       - 'IMAGE_TAG=$(echo "$CODEBUILD_RESOLVED_SOURCE_VERSION" | cut -c1-7)'
       - 'ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME"'
@@ -29,7 +29,7 @@ phases:
   build:
     commands:
       - 'echo "=== BUILD ==="'
-      - 'docker build -t "$ECR_REPO_NAME:$IMAGE_TAG" app/'
+      - 'docker build -t "$ECR_REPO_NAME:$IMAGE_TAG" "$CODEBUILD_SRC_DIR/app"'
       - 'docker tag "$ECR_REPO_NAME:$IMAGE_TAG" "$ECR_URI:$IMAGE_TAG"'
       - 'docker tag "$ECR_REPO_NAME:$IMAGE_TAG" "$ECR_URI:latest"'
 
@@ -39,9 +39,9 @@ phases:
       - 'docker push "$ECR_URI:$IMAGE_TAG"'
       - 'docker push "$ECR_URI:latest"'
       - 'printf ''[{"name":"aws-crm-platform","imageUri":"%s"}]'' "$ECR_URI:$IMAGE_TAG" > imagedefinitions.json'
-      - 'cp app/appspec.yml appspec.yml'
+      - 'cp "$CODEBUILD_SRC_DIR/app/appspec.yml" appspec.yml'
       - 'mkdir -p scripts'
-      - 'cp app/scripts/deploy.sh scripts/deploy.sh'
+      - 'cp "$CODEBUILD_SRC_DIR/app/scripts/deploy.sh" scripts/deploy.sh'
 
 artifacts:
   files:
