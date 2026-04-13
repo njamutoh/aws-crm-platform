@@ -22,9 +22,23 @@ const pool = mysql.createPool({
   connectionLimit:    10,
 });
 
-pool.getConnection()
-  .then(c => { console.log('✅ MySQL connected'); c.release(); })
-  .catch(e => console.error('❌ MySQL error:', e.message));
+async function initDb() {
+  try {
+    const fs   = require('fs');
+    const path = require('path');
+    const sql  = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+    const stmts = sql.split(';').map(s => s.trim()).filter(s => s.length > 0);
+    const conn = await pool.getConnection();
+    for (const stmt of stmts) {
+      await conn.query(stmt);
+    }
+    conn.release();
+    console.log('✅ MySQL connected and schema initialised');
+  } catch (e) {
+    console.error('❌ MySQL init error:', e.message);
+  }
+}
+initDb();
 
 // ── Auth middleware ────────────────────────────────────────────
 function auth(req, res, next) {
