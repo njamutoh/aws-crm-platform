@@ -32,6 +32,13 @@ async function initDb() {
     for (const stmt of stmts) {
       await conn.query(stmt);
     }
+    // Always ensure demo user has the correct password
+    const demoHash = await bcrypt.hash('Demo1234!', 12);
+    await conn.query(
+      `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)`,
+      ['Alex Rivera', 'demo@nexuscrm.io', demoHash]
+    );
     conn.release();
     console.log('✅ MySQL connected and schema initialised');
   } catch (e) {
