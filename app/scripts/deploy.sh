@@ -21,7 +21,7 @@ set -Eeuo pipefail
 # -------------------------
 AWS_REGION="${AWS_REGION:-us-east-1}"
 ECR_REPO_NAME="${ECR_REPO_NAME:-crm_app_repo}"
-SECRETS_NAME="${SECRETS_NAME:-nexus/crm/prod/env}"
+SECRETS_NAME="${SECRETS_NAME:-crm-app/prod/db-credentials}"
 
 CONTAINER_NAME="${CONTAINER_NAME:-aws-crm-platform}"
 CONTAINER_PORT="${CONTAINER_PORT:-3000}"
