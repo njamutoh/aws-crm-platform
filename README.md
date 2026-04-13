@@ -55,7 +55,7 @@ This project was implemented as a real solution to address those challenges thro
 
 ## Architecture Diagram
 
-![AWS CRM Platform Architecture](infra/Architecture%20diagram.png)
+![AWS CRM Platform Architecture][Alt text](Architecture%20diagram.png)
 
 ---
 
