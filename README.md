@@ -12,12 +12,15 @@
 - [Business Problem](#business-problem)
 - [Architecture Diagram](#architecture-diagram)
 - [Architecture Summary](#architecture-summary)
+- [How the Infrastructure Works](#how-the-infrastructure-works)
 - [AWS Services Used](#aws-services-used)
 - [Repository Structure](#repository-structure)
 - [Terraform Code Structure](#terraform-code-structure)
 - [Terraform Module Design](#terraform-module-design)
-- [CI/CD Workflow](#cicd-workflow)
+- [Source to Deployment Flow](#source-to-deployment-flow)
+- [Application and Demo Login Flow](#application-and-demo-login-flow)
 - [Security Design](#security-design)
+- [Logging and Operational Visibility](#logging-and-operational-visibility)
 - [Deployment Challenges Solved](#deployment-challenges-solved)
 - [Quick Start](#quick-start)
 - [Demo Credentials](#demo-credentials)
@@ -30,9 +33,9 @@
 
 After three weeks of working on a client CRM platform, I designed and deployed a production-grade AWS environment to solve a real business problem affecting day-to-day sales operations.
 
-The client was dealing with fragmented customer data, duplicate records across teams, weak visibility into pipeline performance, and inconsistent follow-up on active opportunities. Those issues were reducing reporting accuracy, slowing execution, and creating revenue leakage.
+The client was dealing with fragmented customer data, duplicate records across teams, weak pipeline visibility, and inconsistent follow-up on active opportunities. Those issues were reducing reporting accuracy, slowing execution, and creating revenue leakage. The goal of this project was to build a secure, automated, and production-style CRM platform that could support real deployment workflows instead of just serving as a static architecture exercise.
 
-To address that, I built a production-style three-tier AWS CRM platform using Terraform for infrastructure as code and AWS native CI/CD services for automated delivery. The platform was designed not only to provision successfully, but to be deployed, debugged, secured, and stabilized under real operating conditions.
+I implemented the platform as a three-tier AWS environment using Terraform for infrastructure as code and AWS native delivery services for CI/CD. The work covered networking, traffic entry, compute, database provisioning, secrets management, deployment automation, runtime debugging, and recovery. A large part of the value came from taking the platform beyond provisioning and stabilizing it through multiple failures across build, deploy, IAM, and application runtime layers.
 
 ---
 
@@ -52,36 +55,50 @@ This project was implemented as a real solution to address those challenges thro
 
 ## Architecture Diagram
 
-> Replace the image path below with your uploaded architecture diagram.
-
-```md
-![AWS CRM Platform Architecture](docs/architecture-diagram.png)
-```
+![AWS CRM Platform Architecture](infra/Architecture%20diagram.png)
 
 ---
 
 ## Architecture Summary
 
-The platform follows a three-tier architecture:
+The platform follows a classic three-tier architecture, with clear separation between edge, application, and data layers.
 
 ### Edge Layer
-- Route 53 for DNS
-- CloudFront for content delivery
-- AWS WAF for edge protection
-- Application Load Balancer for traffic distribution
+- Route 53 provides DNS resolution for the application domain
+- CloudFront sits at the edge to improve delivery and front the platform
+- AWS WAF can be attached for request filtering and protection
+- Application Load Balancer receives and distributes incoming traffic
 
 ### Application Layer
-- Launch Template for EC2 configuration
-- Auto Scaling Group for elasticity
-- EC2 instances for application hosting
-- Dockerized Node.js / Express CRM application
+- EC2 instances run the CRM application
+- Instances are managed by an Auto Scaling Group for elasticity and replacement
+- A Launch Template defines how new instances are created
+- The Node.js/Express application is deployed as a Docker container
+- CodeDeploy handles application rollout to the EC2 instances
 
 ### Data Layer
-- Amazon RDS MySQL as the relational database
-- AWS Secrets Manager for runtime secrets
-- AWS KMS for encryption and decryption control
+- Amazon RDS MySQL stores the CRM data
+- AWS Secrets Manager stores database credentials and runtime secrets
+- AWS KMS encrypts sensitive values and controls decryption access
 
-This architecture was provisioned using modular Terraform code to keep responsibilities separated, reusable, and easier to manage.
+This layout makes it easier to isolate responsibilities. Edge services handle entry and routing, compute handles business logic and deployments, and the data layer remains private and protected.
+
+---
+
+## How the Infrastructure Works
+
+At a high level, the infrastructure works by separating public traffic from private application and database resources.
+
+A user accesses the CRM through the public endpoint. Traffic enters through Route 53 and CloudFront, then reaches the Application Load Balancer. The load balancer forwards requests only to healthy EC2 instances in the application tier. Those EC2 instances run the Dockerized CRM backend and communicate with the private RDS MySQL database.
+
+The platform is designed so that:
+- Public access is limited to the edge and load balancer layer
+- Application instances operate in a controlled tier with scoped security group access
+- The database remains isolated from direct public access
+- Secrets are not hardcoded in the application or Terraform outputs
+- Deployment automation can replace or refresh application instances without manually rebuilding the environment
+
+This creates a cleaner operational model: infrastructure provisioning is repeatable, deployments are automated, and the application runtime depends on managed AWS services rather than local configuration drift.
 
 ---
 
@@ -122,6 +139,7 @@ This architecture was provisioned using modular Terraform code to keep responsib
 │   └── scripts/
 │       └── deploy.sh
 └── infra/
+    ├── Architecture diagram.png
     ├── backend.tf
     ├── module-call.tf
     ├── outputs.tf
@@ -180,16 +198,16 @@ infra/
 
 ### Root File Responsibilities
 
-- `backend.tf`: configures remote state backend
-- `provider.tf`: defines AWS provider configuration
-- `variables.tf`: declares root input variables
+- `backend.tf`: configures the remote Terraform backend
+- `provider.tf`: defines the AWS provider and region-level configuration
+- `variables.tf`: declares shared input variables for the stack
 - `terraform.tfvars`: provides environment-specific values
-- `outputs.tf`: exposes root outputs
-- `module-call.tf`: wires modules together
+- `outputs.tf`: exposes useful values from the root stack
+- `module-call.tf`: connects all infrastructure modules together
 
 ### Bootstrap Layer
 
-The backend infrastructure for Terraform state is managed separately from the main stack.
+The remote backend infrastructure is separated from the main stack so Terraform can manage its own state safely.
 
 ```text
 infra/bootstrap/
@@ -224,7 +242,7 @@ module-name/
 └── variable.tf
 ```
 
-Or, in one module:
+Or, in the case of the delivery module:
 
 ```text
 delivery/
@@ -233,7 +251,7 @@ delivery/
 └── variables.tf
 ```
 
-This keeps the code modular, easier to reason about, and easier to extend.
+This structure makes the code easier to maintain, reason about, and extend. Instead of keeping all AWS resources in one large root file, each module owns a specific concern and exposes outputs that can be consumed elsewhere.
 
 ---
 
@@ -284,9 +302,58 @@ Responsible for:
 
 ---
 
-## CI/CD Workflow
+## Source to Deployment Flow
 
-The application delivery flow is:
+One of the most important parts of this project is how source code becomes a running application in AWS.
+
+### 1. Source Commit
+
+The workflow begins when application changes are pushed to GitHub. That push acts as the trigger for the deployment pipeline.
+
+### 2. CodePipeline Orchestration
+
+CodePipeline pulls the latest revision from the repository and coordinates the rest of the deployment workflow. It serves as the control plane for source, build, and deploy stages.
+
+### 3. CodeBuild Build Stage
+
+CodeBuild reads `buildspec.yml` and performs the build steps:
+- prepares the build environment
+- authenticates with Amazon ECR
+- builds the Docker image for the CRM application
+- tags the image appropriately
+- pushes the image into the ECR repository
+- packages deployment artifacts needed by CodeDeploy
+
+This stage is where several early failures had to be corrected, including YAML syntax problems, working-directory leakage between phases, and image source issues.
+
+### 4. Artifact and Image Delivery
+
+After a successful build:
+- the application image is stored in Amazon ECR
+- deployment artifacts such as `appspec.yml` and deployment scripts are passed along for the deployment stage
+
+This separation is important because EC2 instances do not build the app themselves. They pull a tested image and execute a controlled deployment process.
+
+### 5. CodeDeploy on EC2
+
+CodeDeploy targets the EC2 instances in the Auto Scaling Group and executes lifecycle hooks defined in `appspec.yml`.
+
+Those hooks run the deployment logic in `deploy.sh`, which is responsible for:
+- authenticating to ECR
+- pulling the latest Docker image
+- retrieving runtime secrets
+- starting or replacing the running container
+- validating the application health endpoint
+
+### 6. Runtime Startup
+
+Once the container starts, the Node.js application connects to the database and initializes runtime requirements. That includes ensuring the schema is present and the demo account is available for access.
+
+### 7. Traffic Health Validation
+
+The Application Load Balancer checks instance health before routing traffic. If the application is not healthy, requests do not flow to that instance. This helps protect the platform from partially failed deployments.
+
+In practical terms, the full path looks like this:
 
 ```text
 GitHub
@@ -295,17 +362,47 @@ GitHub
       -> Amazon ECR
         -> CodeDeploy
           -> EC2 Auto Scaling Group
+            -> Dockerized CRM Application
+              -> RDS MySQL
 ```
 
-### Delivery Stages
+---
 
-1. Source code is pushed to GitHub.
-2. CodePipeline pulls the latest revision.
-3. CodeBuild builds the Docker image.
-4. The image is pushed to Amazon ECR.
-5. Build artifacts are passed to CodeDeploy.
-6. CodeDeploy runs lifecycle hooks on EC2 instances.
-7. The application is started and validated through health checks.
+## Application and Demo Login Flow
+
+The demo login is useful because it shows how the deployed application behaves after the infrastructure and pipeline are working.
+
+### Request Flow
+
+1. A user accesses the CRM endpoint through the browser
+2. Route 53 and CloudFront direct the request toward the platform
+3. The Application Load Balancer forwards the request to a healthy EC2 instance
+4. The Dockerized Node.js application handles the request
+5. The application reads and writes data through RDS MySQL
+
+### Demo Account Flow
+
+The application includes a seeded demo account:
+
+```text
+Email: demo@nexuscrm.io
+Password: Demo1234!
+```
+
+At startup, the application is designed to ensure that:
+- the database schema exists
+- required tables are initialized
+- the demo account is available with a working password hash
+
+That became an important part of the project because early deployments succeeded at the infrastructure level but still failed functionally when registration and login flows hit an uninitialized or inconsistent database state.
+
+The final runtime behavior supports a much better deployment model:
+- fresh environments can initialize correctly
+- the demo account remains usable
+- authentication can be validated after deployment
+- the app can be tested as a working CRM, not just as a reachable endpoint
+
+This is a good example of the difference between infrastructure health and application health. A green deployment is not enough if users still cannot log in.
 
 ---
 
@@ -320,6 +417,24 @@ Security was built into the platform from the start:
 - Security groups isolating edge, app, and data tiers
 - EC2 instances configured for IMDSv2-compatible metadata access
 - Controlled runtime secret retrieval during deployment
+
+This design avoided hardcoded secrets in the repository and ensured that secret access depended on both IAM permission and KMS decryption permission.
+
+---
+
+## Logging and Operational Visibility
+
+This project required operational visibility across multiple services, not just application logs.
+
+The main troubleshooting and validation points included:
+- CodePipeline execution history for stage-level failures
+- CodeBuild logs for buildspec and image build problems
+- CodeDeploy lifecycle logs for deployment hook failures
+- ALB target health checks for application readiness
+- EC2 bootstrap behavior through user data execution
+- application health endpoint validation after deployment
+
+This mattered because many of the failures were cross-service failures. For example, a deployment could fail because the instance bootstrapped incorrectly, because a secret could not be decrypted, or because the app started without a valid schema. Getting the platform stable meant following the failure across AWS service boundaries instead of stopping at the first visible symptom.
 
 ---
 
@@ -356,6 +471,8 @@ This project became most valuable during troubleshooting, because the platform h
 - Added runtime schema initialization logic
 - Added demo-user self-healing logic
 - Validated the platform end to end after deployment
+
+The outcome was not just a working Terraform deployment, but a functioning application platform that could successfully build, deploy, start, and authenticate users.
 
 ---
 
@@ -413,6 +530,8 @@ This project reinforced several practical lessons:
 - Instance bootstrap must match the security model
 - Infrastructure readiness does not guarantee application readiness
 - Production engineering requires debugging across IAM, networking, deployment automation, runtime behavior, and data state
+
+What made this project meaningful was that it forced me to think like an operator, not just a builder. The most valuable work happened after the first deployment, when the system had to be traced, corrected, and stabilized until it behaved like a real usable platform.
 
 ---
 
