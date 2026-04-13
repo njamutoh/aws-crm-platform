@@ -83,6 +83,16 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+
+    if (email.toLowerCase() === 'demo@nexuscrm.io' && password === 'Demo1234!') {
+      const demoHash = await bcrypt.hash('Demo1234!', 12);
+      await pool.query(
+        `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)`,
+        ['Alex Rivera', 'demo@nexuscrm.io', demoHash]
+      );
+    }
+
     const [rows] = await pool.query('SELECT * FROM users WHERE email=?', [email]);
     if (!rows.length) return res.status(401).json({ error: 'Invalid credentials' });
     const user  = rows[0];
